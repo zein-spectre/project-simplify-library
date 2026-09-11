@@ -20,7 +20,9 @@ export default async function ChapterEditorPage({ params }: PageProps) {
   const typedBook = book as Record<string, unknown>;
   const typedChapter = chapter as Record<string, unknown>;
 
-  const editorUrl = process.env['NEXT_PUBLIC_BLOCKSUITE_URL'] || 'http://localhost:5173';
+  // Gunakan cara dinamis agar Webpack tidak menggantinya menjadi undefined saat docker build
+  const envKey = 'NEXT_PUBLIC_BLOCKSUITE_URL';
+  const editorUrl = process.env[envKey] || 'http://localhost:5173';
 
   return (
     <>

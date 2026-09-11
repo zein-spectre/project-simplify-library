@@ -43,7 +43,7 @@ export default function BlockSuiteEditor({
   onChange,
   onReady,
   readOnly = false,
-  editorUrl = process.env.NEXT_PUBLIC_BLOCKSUITE_URL || 'http://localhost:5173',
+  editorUrl = 'http://localhost:5173',
   initialJson,
 }: BlockSuiteEditorProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
