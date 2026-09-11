@@ -1,8 +1,8 @@
 import { Client, Databases, Storage, Account, OAuthProvider } from 'appwrite';
 export { OAuthProvider };
 
-let endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!;
-if (!endpoint.endsWith('/v1')) {
+let endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || '';
+if (endpoint && !endpoint.endsWith('/v1')) {
   endpoint += '/v1';
 }
 

@@ -3,8 +3,8 @@ import { Client, Databases, Storage, Users } from 'node-appwrite';
 // Server-side Appwrite client (API Key — hanya di Server Components / API Routes)
 // Compatible dengan Appwrite Server 1.5.x (node-appwrite SDK v12)
 export function createAdminClient() {
-  let endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!;
-  if (!endpoint.endsWith('/v1')) {
+  let endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || '';
+  if (endpoint && !endpoint.endsWith('/v1')) {
     endpoint += '/v1';
   }
 
