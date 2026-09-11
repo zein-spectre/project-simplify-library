@@ -20,6 +20,8 @@ export default async function ChapterEditorPage({ params }: PageProps) {
   const typedBook = book as Record<string, unknown>;
   const typedChapter = chapter as Record<string, unknown>;
 
+  const editorUrl = process.env['NEXT_PUBLIC_BLOCKSUITE_URL'] || 'http://localhost:5173';
+
   return (
     <>
       <AdminTopbar breadcrumbs={[
@@ -27,7 +29,7 @@ export default async function ChapterEditorPage({ params }: PageProps) {
         { label: typedChapter.title as string },
         { label: 'Editor' },
       ]} />
-      <ChapterEditorClient book={typedBook} chapter={typedChapter} />
+      <ChapterEditorClient book={typedBook} chapter={typedChapter} editorUrl={editorUrl} />
     </>
   );
 }

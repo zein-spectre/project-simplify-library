@@ -28,9 +28,10 @@ interface Chapter {
 interface ChapterEditorClientProps {
   book: Record<string, unknown>;
   chapter: Record<string, unknown>;
+  editorUrl?: string;
 }
 
-export default function ChapterEditorClient({ book, chapter }: ChapterEditorClientProps) {
+export default function ChapterEditorClient({ book, chapter, editorUrl }: ChapterEditorClientProps) {
   const typedBook = book as unknown as Book;
   const typedChapter = chapter as unknown as Chapter;
   const [saveState, setSaveState] = useState<SaveState>('idle');
@@ -229,6 +230,7 @@ export default function ChapterEditorClient({ book, chapter }: ChapterEditorClie
           onChange={handleContentChange}
           readOnly={false}
           initialJson={typedChapter.content_json}
+          editorUrl={editorUrl}
         />
       </div>
     </div>
