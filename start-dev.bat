@@ -1,0 +1,9 @@
+@echo off
+echo Starting BlockSuite Editor Server (port 5173)...
+start cmd /k "cd blocksuite && npm run dev"
+
+echo Starting Next.js App (port 3000)...
+cd simplify-app
+echo Clearing .next cache to prevent database errors...
+if exist .next rmdir /s /q .next
+npm run dev

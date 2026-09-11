@@ -1,0 +1,23 @@
+{
+  "name": "testing-blocksuite",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@blocksuite/blocks": "0.15.0-canary-202406291027-8aed732",
+    "@blocksuite/presets": "0.15.0-canary-202406291027-8aed732",
+    "@blocksuite/store": "0.15.0-canary-202406291027-8aed732",
+    "katex": "^0.18.7",
+    "y-indexeddb": "^9.0.12"
+  },
+  "devDependencies": {
+    "@types/katex": "^0.16.8",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.11"
+  }
+}

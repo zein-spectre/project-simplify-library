@@ -1,0 +1,171 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-50: #f7f2fa;
+  --color-primary-100: #eedff2;
+  --color-primary-200: #D4A8FF; /* Gen Z Light Accent */
+  --color-primary-300: #c181f0;
+  --color-primary-400: #aa5cdb;
+  --color-primary-500: #8c3bb8;
+  --color-primary-600: #4A0E69; /* Dominan Deep Purple */
+  --color-primary-700: #3a0a52;
+  --color-primary-800: #29063c;
+  --color-primary-900: #1b0328;
+  --color-primary-950: #110119;
+  
+  --color-accent-50: #fffdf5;
+  --color-accent-100: #fff9e6;
+  --color-accent-200: #ffefcc;
+  --color-accent-300: #ffe4a3;
+  --color-accent-400: #ffd700; /* Sorotan Electric Yellow */
+  --color-accent-500: #e6c200;
+  --color-accent-600: #cca300;
+
+  --color-gray-50: #FAFAFA;
+  --color-gray-100: #F2F2F2; /* Sekunder / Kartu */
+  --color-gray-900: #000000; /* Teks Utama */
+}
+
+@layer base {
+
+  html {
+    font-family: var(--font-sans);
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply text-gray-900 bg-white;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  /* Typography dasar untuk halaman baca */
+  .prose-simplify h1 { @apply text-3xl font-bold text-gray-900 mb-6 leading-tight; }
+  .prose-simplify h2 { @apply text-2xl font-semibold text-gray-800 mt-10 mb-4 leading-snug; }
+  .prose-simplify h3 { @apply text-xl font-semibold text-gray-700 mt-8 mb-3; }
+  .prose-simplify p  { @apply text-gray-700 leading-relaxed mb-5; }
+  .prose-simplify ul { @apply list-disc list-outside pl-6 mb-5 space-y-1 text-gray-700; }
+  .prose-simplify ol { @apply list-decimal list-outside pl-6 mb-5 space-y-1 text-gray-700; }
+  .prose-simplify blockquote {
+    @apply border-l-4 border-primary-400 pl-5 py-2 bg-primary-50 rounded-r-lg text-gray-700 italic my-6;
+  }
+  .prose-simplify code {
+    @apply bg-gray-100 text-sm font-mono px-1.5 py-0.5 rounded text-primary-700;
+  }
+
+  /*
+   * Styling untuk konten HTML yang di-export oleh BlockSuite HtmlAdapter.
+   * BlockSuite menghasilkan HTML dengan struktur tertentu (section, p, h1-h6, ul, ol, code, pre).
+   * Class ini memastikan konten tampil rapi untuk pembaca publik.
+   */
+  .blocksuite-content {
+    @apply text-gray-800 text-base leading-[1.85] font-normal break-words;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+  }
+  .blocksuite-content * {
+    max-width: 100%;
+  }
+  .blocksuite-content h1 { @apply text-3xl font-bold text-gray-900 mt-10 mb-5 leading-tight; }
+  .blocksuite-content h2 { @apply text-2xl font-semibold text-gray-800 mt-10 mb-4 leading-snug border-b border-gray-100 pb-2; }
+  .blocksuite-content h3 { @apply text-xl font-semibold text-gray-700 mt-8 mb-3; }
+  .blocksuite-content h4 { @apply text-lg font-semibold text-gray-700 mt-6 mb-2; }
+  .blocksuite-content p  { @apply text-gray-700 leading-relaxed mb-5; }
+  .blocksuite-content ul { @apply list-disc list-outside pl-6 mb-5 space-y-2 text-gray-700; }
+  .blocksuite-content ol { @apply list-decimal list-outside pl-6 mb-5 space-y-2 text-gray-700; }
+  .blocksuite-content li { @apply leading-relaxed; }
+  .blocksuite-content blockquote {
+    @apply border-l-4 border-primary-400 pl-5 py-3 bg-primary-50 rounded-r-xl text-gray-700 italic my-6;
+  }
+  .blocksuite-content code {
+    @apply bg-gray-100 text-sm font-mono px-1.5 py-0.5 rounded text-primary-700;
+  }
+  .blocksuite-content pre {
+    @apply bg-gray-900 text-green-300 rounded-xl p-5 text-sm overflow-x-auto my-6 leading-relaxed;
+  }
+  .blocksuite-content pre code {
+    @apply bg-transparent text-green-300 p-0 rounded-none;
+  }
+  .blocksuite-content table {
+    @apply w-full border-collapse my-6 text-sm;
+  }
+  .blocksuite-content th {
+    @apply bg-primary-50 text-primary-800 font-semibold px-4 py-2 text-left border border-gray-200;
+  }
+  .blocksuite-content td {
+    @apply px-4 py-2 border border-gray-200 text-gray-700;
+  }
+  .blocksuite-content tr:nth-child(even) { @apply bg-gray-50; }
+  .blocksuite-content a {
+    @apply text-primary-600 underline underline-offset-2 hover:text-primary-800 transition-colors;
+  }
+  /* Sembunyikan elemen UI internal BlockSuite yang mungkin ikut ter-export */
+  .blocksuite-content .affine-paragraph-block-container { @apply mb-5; }
+  .blocksuite-content section { @apply mb-2; }
+}
+
+
+@layer components {
+  /* Button variants */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-700
+           text-white text-sm font-semibold rounded-lg transition-colors duration-150
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-gray-50
+           text-gray-700 text-sm font-semibold border border-gray-200 rounded-lg
+           transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-primary-500;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-primary-600
+           hover:bg-primary-50 text-sm font-medium rounded-lg transition-colors duration-150;
+  }
+  .btn-danger {
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700
+           text-white text-sm font-semibold rounded-lg transition-colors duration-150;
+  }
+
+  /* Form inputs */
+  .input-field {
+    @apply w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900
+           placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2
+           focus:ring-primary-500 focus:border-transparent transition-all duration-150;
+  }
+  .input-label {
+    @apply block text-sm font-medium text-gray-700 mb-1.5;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-white rounded-xl border border-gray-100 shadow-sm;
+  }
+  .card-hover {
+    @apply bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md
+           hover:border-primary-100 transition-all duration-200;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Status badges */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  /* Skeleton loader */
+  .skeleton {
+    @apply bg-gray-200 animate-pulse rounded;
+  }
+}
+
+/* Scrollbar halus */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
