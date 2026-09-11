@@ -54,6 +54,11 @@ async function appwriteFetch(
   body?: AnyRecord,
   queryParams?: Record<string, string | string[]>
 ): Promise<AnyRecord> {
+  if (!ENDPOINT) {
+    console.warn(`[Build Warning] Missing NEXT_PUBLIC_APPWRITE_ENDPOINT. Skipping fetch for ${path}`);
+    return { total: 0, documents: [] } as AnyRecord;
+  }
+
   const url = new URL(`/v1${path}`, ENDPOINT);
 
   if (queryParams) {

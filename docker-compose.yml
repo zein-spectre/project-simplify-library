@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   simplify-app:
-    image: zeinspectre/simplify-library-web:latest
+    image: ghcr.io/zein-spectre/project-simplify-library-web:latest
     container_name: simplify-library-web
     restart: unless-stopped
     ports:
