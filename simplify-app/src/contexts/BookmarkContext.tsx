@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { usePublicAuth } from '@/contexts/PublicAuthContext';
 import { getUserBookmarkBookIds, toggleBookmark as toggleBookmarkAction } from '@/actions/bookmarks';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { AlertCircle, LogIn, X } from 'lucide-react';
 
@@ -18,6 +18,7 @@ const BookmarkContext = createContext<BookmarkContextType | null>(null);
 export function BookmarkProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = usePublicAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [bookmarkedIds, setBookmarkedIds] = useState<string[]>([]);
   const [loadingBookmarks, setLoadingBookmarks] = useState(true);
 
@@ -27,6 +28,12 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (authLoading) return;
+
+    // Jangan fetch bookmark jika sedang berada di area admin
+    if (pathname?.startsWith('/admin')) {
+      setLoadingBookmarks(false);
+      return;
+    }
 
     if (!user) {
       setBookmarkedIds([]);
@@ -42,7 +49,7 @@ export function BookmarkProvider({ children }: { children: ReactNode }) {
         setBookmarkedIds([]);
       })
       .finally(() => setLoadingBookmarks(false));
-  }, [user, authLoading]);
+  }, [user, authLoading, pathname]);
 
   const toggleBookmark = async (bookId: string): Promise<boolean> => {
     if (!user) {

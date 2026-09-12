@@ -10,7 +10,8 @@ export function proxy(request: NextRequest) {
 
   // Login page: /login (dipindah ke root agar tidak kena admin layout)
   if (pathname === '/login') {
-    if (sessionCookie) {
+    const isAdmin = request.cookies.get('is_admin')?.value === 'true';
+    if (sessionCookie && isAdmin) {
       return NextResponse.redirect(new URL('/admin', request.url));
     }
     return NextResponse.next();

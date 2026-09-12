@@ -1,7 +1,12 @@
 #!/bin/bash
 cd "$(dirname "$0")" || exit
+echo "Cleaning up any running background processes..."
+lsof -ti:5173 | xargs kill -9 2>/dev/null
+lsof -ti:3000 | xargs kill -9 2>/dev/null
+
 echo "Starting BlockSuite Editor Server (port 5173)..."
-(cd blocksuite && npm run dev) &
+echo "Clearing Vite cache for BlockSuite..."
+(cd blocksuite && rm -rf node_modules/.vite && npm run dev) &
 BLOCKSUITE_PID=$!
 
 echo "Starting Next.js App (port 3000)..."

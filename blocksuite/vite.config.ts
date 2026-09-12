@@ -1,13 +1,24 @@
 import { defineConfig } from 'vite'
+import { resolve } from 'path'
 
 export default defineConfig({
-  // BlockSuite uses web components — no framework plugin needed
+  resolve: {
+    dedupe: ['yjs', 'y-protocols'],
+    alias: {
+      'yjs': resolve(__dirname, 'node_modules/yjs/dist/yjs.mjs'),
+    }
+  },
+
+  build: {
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
+  },
 
   server: {
-    // Izinkan di-embed sebagai iframe dari Next.js (port 3000)
     headers: {
       'X-Frame-Options': 'ALLOWALL',
-      'Content-Security-Policy': "frame-ancestors 'self' http://localhost:3000 http://localhost:3001",
+      'Content-Security-Policy': "frame-ancestors 'self' http://localhost:2002 http://localhost:3000 http://localhost:3001",
     },
     cors: true,
   },

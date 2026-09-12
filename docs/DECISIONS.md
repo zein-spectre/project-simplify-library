@@ -2,6 +2,46 @@
 
 This document records important architectural and technical decisions made during the development of the Simplify Library project. Recording these decisions helps future developers (and AI assistants) understand *why* certain approaches were chosen.
 
+## 11. BlockSuite: connectedCallback Re-entrancy Guard & Editor Instantiation Scope
+**Date:** 2026-09-12
+**Context:** After the initial shadow-root fix (Decision #10), the BlockSuite editor showed a `slots` TypeError in the console and `initEmptyTemplate()` was called twice. Investigation revealed:
+1. `new AffineEditorContainer()` was called at module level — before `customElements.define()` registered the element — creating an unregistered instance.
+2. Lit calls `connectedCallback` a **second time** when the Yjs doc is reattached by IndexedDB persistence. The second call happened inside an async Promise chain that bypassed the synchronous try/catch.
+3. `_connectedRan` was closure-scoped (a `let` in the module), making it shared across all instances — not isolated per element.
+
+**Decision:**
+1. Move `new AffineEditorContainer()` into `mountEditor()` so the element is only instantiated after the prototype patch is registered.
+2. Store `_connectedRan` as a property on `this` (the element instance) instead of a closure variable.
+3. Add `_initialized` module-level flag to prevent `initEmptyTemplate()` from running twice (timeout + synced event race).
+
+**Consequences:**
+- **Pros:** No more uncaught `slots` exceptions, no double initialization.
+- **Cons:** Prototype patches that store state on `this` are fragile if BlockSuite changes its class structure in future versions.
+
+---
+
+## 10. BlockSuite Editor: Shadow Root & Lit Reactive Update Fix
+**Date:** 2026-09-12
+**Context:** BlockSuite editor iframe showed a blank white screen. Investigation revealed two combined bugs:
+
+1. **Shadow root null:** Vite's pre-bundler (`optimizeDeps`) strips `customElements.define()` calls from Lit's `@customElement` decorator at build time. When `AffineEditorContainer` was instantiated, `connectedCallback()` threw before Lit's built-in `attachShadow()` could run, leaving the element with no shadow DOM.
+
+2. **doc.root null after mount:** `editor.doc` was assigned before `document.body.append(editor)`. Lit's reactive setter (`requestUpdate()`) fired before the element was in the DOM, so the first render pass ran against an unattached element and produced nothing.
+
+**Decision:** Two targeted fixes in `main.ts`:
+
+1. Patch `AffineEditorContainer.prototype.connectedCallback` before registration to call `this.attachShadow({ mode: 'open' })` first, then invoke the original. Wrap in try/catch to suppress benign errors during `doc.load()`.
+
+2. Reorder `mountEditor()`: set `editor.doc` AFTER `document.body.append(editor)`, then call `editor.requestUpdate()` to trigger Lit's reactive render.
+
+**Note:** A full Vite cache clear (`rm -rf node_modules/.vite`) is required after changing prototype patches — stale cached code will silently ignore the patch.
+
+**Consequences:**
+- **Pros:** Editor renders correctly without requiring changes to BlockSuite's internal code or package versions.
+- **Cons:** Patching `connectedCallback` on the prototype is fragile — any future BlockSuite version that changes this method's signature may break silently.
+
+---
+
 ## 9. Responsive Grid: Explicit Breakpoints vs. Auto-Fill
 **Date:** 2026-09-10
 **Context:** Halaman Beranda dan Katalog menggunakan CSS Grid dengan `grid-cols-[repeat(auto-fill,minmax(180px,1fr))]`. Pada layar HP yang sempit (lebar < 360px), browser tidak bisa muat 2 kolom sekaligus, sehingga CSS memaksa hanya 1 kolom dan membentangkan 1 kartu buku memenuhi seluruh layar — terlihat sangat besar dan tidak proporsional, bahkan jika hanya ada 1 buku di koleksi.

@@ -2,7 +2,53 @@
 
 This file tracks what gets done in each work session.
 
-## 2026-09-10 (Sesi 2): Fitur Pencarian Beranda, Bookmark Fix, dan Responsive Grid
+## 2026-09-12 (Sesi 2): BlockSuite Editor — connectedCallback Re-entrancy & Editor Instantiation Fix
+
+**Problem:** Editor was blank again on the admin page. Console showed:
+- `Uncaught TypeError: Cannot read properties of undefined (reading 'slots')` at `connectedCallback`
+- `[BlockSuite] Synced timeout — init empty template` firing alongside the `synced` handler (double-init)
+- Vite HMR cache serving stale code where the `_connectedRan` guard was closure-scoped
+
+**Root Cause 1 — Editor instantiation before registration:** `new AffineEditorContainer()` was called at module level before `customElements.define()` ran, creating a second unregistered instance.
+
+**Root Cause 2 — Closure-scoped re-entrancy guard:** `_connectedRan` was a `let` in the module closure, shared across all instances — not isolated per element. Vite HMR cache compounded this by serving stale code.
+
+**Root Cause 3 — Double `initEmptyTemplate()`:** The 3-second fallback timeout and the `synced` event both called `initEmptyTemplate()` since `_initialized` was set inside the timeout, not before.
+
+**Fix Applied:**
+- Move `new AffineEditorContainer()` into `mountEditor()` (only created after prototype is patched)
+- Store `_connectedRan` as `this._connectedRan` (element instance property)
+- Add module-level `_initialized` flag, set in both timeout and `initEmptyTemplate()` body
+- Full Vite cache clear: `rm -rf blocksuite/node_modules/.vite blocksuite/.vite`
+
+**Files Changed:**
+- `blocksuite/src/main.ts` — editor moved to `mountEditor()`, `_connectedRan` on `this`, `_initialized` guard
+
+**Verification:** Editor renders with editable "Title" heading and "Tags" section. No `slots` TypeError. After full restart via `start-dev.command` (cache cleared): confirmed no `slots` TypeError, no double `initEmptyTemplate()` call. Resolution confirmed.
+
+---
+
+## 2026-09-12: BlockSuite Editor — Shadow Root & Doc Initialization Fix
+
+**Problem:** BlockSuite editor iframe showed a blank white screen despite all resources loading correctly.
+
+**Root Cause 1 — Shadow Root Null:** Vite's pre-bundler (`optimizeDeps`) strips `customElements.define` calls from Lit decorators in `@blocksuite/presets`. This caused `AffineEditorContainer` to throw in `connectedCallback` before `attachShadow()` could run, leaving the element with no shadow root.
+
+**Root Cause 2 — doc.root Null:** `editor.doc` was assigned BEFORE `document.body.append(editor)`. Lit's reactive update fired before the element was in the DOM, so the render pass ran but rendered nothing.
+
+**Fix Applied:**
+- Patch `AffineEditorContainer.prototype.connectedCallback` to create shadow root first, then wrap original call in try/catch
+- Reorder `mountEditor` to set `editor.doc` AFTER `document.body.append(editor)`, then call `editor.requestUpdate()`
+- Full Vite cache clear (`rm -rf node_modules/.vite`) required for prototype patches to take effect
+
+**Files Changed:**
+- `blocksuite/src/main.ts` [MODIFIED] — connectedCallback patch, reordered mountEditor
+- `blocksuite/vite.config.ts` [MODIFIED] — simplified config, no special aliases needed for this fix
+- `blocksuite/src/editor-registration.ts` [MODIFIED] — simplified to `import '@blocksuite/presets'` only
+
+---
+
+## 2026-09-10
 
 **Search Bar Interaktif di Beranda**
 - Tambah komponen `HomeSearchBar.tsx` dengan fitur *autocomplete* dropdown yang bersifat *real-time*: setiap ketikan memicu pencarian ke Appwrite dan menampilkan maksimal 4 saran buku secara langsung.

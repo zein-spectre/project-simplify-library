@@ -1,50 +1,73 @@
 import '@blocksuite/presets/themes/affine.css';
+import './editor-registration';
 
 import { AffineSchemas, HtmlAdapter } from '@blocksuite/blocks';
 import { AffineEditorContainer } from '@blocksuite/presets';
-import { Schema, DocCollection, Text, Job } from '@blocksuite/store';
+
+// Vite pre-bundle skips customElements.define. Register manually.
+// Patch to create shadow root and guard against slots being undefined.
+// Store _connectedRan on `this` so each element instance has its own flag.
+if (!customElements.get('affine-editor-container')) {
+  const origConnected = AffineEditorContainer.prototype.connectedCallback;
+  AffineEditorContainer.prototype.connectedCallback = function () {
+    if (!this.shadowRoot) {
+      this.attachShadow({ mode: 'open' });
+    }
+    const el = this as typeof this & { _connectedRan?: boolean };
+    if (!el._connectedRan) {
+      el._connectedRan = true;
+      try {
+        origConnected.call(this);
+      } catch (e) {
+        // Slots may be undefined when called during doc.load()
+      }
+    }
+  };
+  customElements.define('affine-editor-container', AffineEditorContainer as CustomElementConstructor);
+}
+import { Schema, DocCollection, Job } from '@blocksuite/store';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { initHtmlPreview } from './html-preview';
 import { initLatexRenderer } from './latex-renderer';
 
-// ── Baca query params dari URL ────────────────────────────────────────────────
+
 const searchParams = new URLSearchParams(window.location.search);
 const DOC_ID = searchParams.get('docId') || 'default-doc';
 const READ_ONLY = searchParams.get('readOnly') === 'true';
 
-// ── Setup collection ──────────────────────────────────────────────────────────
 const schema = new Schema().register(AffineSchemas);
 const collection = new DocCollection({ schema });
 collection.meta.initialize();
 
-// Setiap bab menggunakan docId uniknya sendiri
-const doc = collection.createDoc({ id: DOC_ID });
+let doc = collection.createDoc({ id: DOC_ID });
 
-// ── Mount editor ──────────────────────────────────────────────────────────────
-const editor = new AffineEditorContainer();
-editor.doc = doc;
-editor.mode = 'page';
-editor.autofocus = !READ_ONLY;
-document.body.append(editor);
+let isMounted = false;
+let _editor: AffineEditorContainer | null = null;
 
-// ── Extensions (after editor in DOM) ──────────────────────────────────────────
-initHtmlPreview(editor);
-initLatexRenderer(editor);
+function mountEditor(targetDoc: typeof doc) {
+  if (!isMounted) {
+    _editor = new AffineEditorContainer();
+    _editor.mode = 'page';
+    _editor.autofocus = false;
+    document.body.append(_editor);
+    _editor.doc = targetDoc;
+    _editor.requestUpdate();
+    initHtmlPreview(_editor);
+    initLatexRenderer(_editor);
+    isMounted = true;
+  }
+}
 
-// ── Export helpers ────────────────────────────────────────────────────────────
-
-/** Export JSON snapshot (source of truth) dari dokumen BlockSuite */
 async function exportJsonSnapshot(): Promise<string> {
   const job = new Job({ collection });
-  const snapshot = await job.docToSnapshot(editor.doc);
+  const snapshot = await job.docToSnapshot(_editor!.doc);
   return JSON.stringify(snapshot);
 }
 
-/** Export konten dokumen sebagai HTML string bersih */
 async function exportHtmlString(): Promise<string> {
   try {
     const job = new Job({ collection });
-    const snapshot = await job.docToSnapshot(editor.doc);
+    const snapshot = await job.docToSnapshot(_editor!.doc);
     const adapter = new HtmlAdapter(job);
     const result = await adapter.fromDocSnapshot({
       snapshot,
@@ -52,12 +75,10 @@ async function exportHtmlString(): Promise<string> {
     });
     return result.file;
   } catch {
-    // Fallback: ambil innerHTML dari DOM sebagai HTML mentah
     return document.querySelector('.affine-doc-viewport')?.innerHTML ?? '';
   }
 }
 
-// ── Debounce helper ───────────────────────────────────────────────────────────
 function debounce(fn: () => void, ms: number) {
   let timer: ReturnType<typeof setTimeout>;
   return () => {
@@ -66,79 +87,80 @@ function debounce(fn: () => void, ms: number) {
   };
 }
 
-// ── Kirim konten ke parent Next.js (debounce 1 detik) ────────────────────────
 const sendContentToParent = debounce(async () => {
-  if (READ_ONLY) return;
+  if (READ_ONLY || !isMounted) return;
   try {
     const [json, html] = await Promise.all([exportJsonSnapshot(), exportHtmlString()]);
-    window.parent.postMessage(
-      {
-        type: 'EDITOR_CONTENT_CHANGE',
-        payload: { json, html },
-      },
-      '*'
-    );
+    window.parent.postMessage({ type: 'EDITOR_CONTENT_CHANGE', payload: { json, html } }, '*');
   } catch (err) {
     console.error('[BlockSuite] Gagal export konten:', err);
   }
 }, 1000);
 
-// ── IndexedDB FIRST, then doc.load inside synced ─────────────────────────────
-// PENTING: Gunakan DOC_ID sebagai key agar setiap bab punya storage IndexedDB terpisah
 const provider = new IndexeddbPersistence(`simplify-chapter-${DOC_ID}`, doc.spaceDoc);
 
-let isEmpty = false;
-
 provider.on('synced', () => {
-  doc.load(() => {
-    // Inisialisasi template kosong langsung di dalam callback load
-    // agar BlockSuite tidak error (Invalid access: Add Yjs type to a document...).
-    const pageBlockId = doc.addBlock('affine:page', {});
-    doc.addBlock('affine:surface', {}, pageBlockId);
-    const noteId = doc.addBlock('affine:note', {}, pageBlockId);
-    doc.addBlock('affine:paragraph', {}, noteId);
+  console.log('[BlockSuite] IndexedDB synced, hasData:', doc.spaceDoc.share.size > 0);
+  const hasExistingData = doc.spaceDoc.share.size > 0;
 
-    isEmpty = true;
-    window.parent.postMessage({ type: 'REQUEST_INITIAL_CONTENT', payload: { docId: DOC_ID } }, '*');
-  });
-
-  // Jika IndexedDB sudah punya data (tidak kosong), langsung jalankan editor
-  if (!isEmpty) {
+  if (hasExistingData) {
+    doc.load();
+    mountEditor(doc);
     window.parent.postMessage({ type: 'EDITOR_READY', payload: { docId: DOC_ID } }, '*');
-    // Mulai listen perubahan Yjs doc → autosave
     doc.spaceDoc.on('update', sendContentToParent);
+  } else {
+    initEmptyTemplate();
   }
 });
 
-// ── Listener perintah sinkronisasi dari Next.js ───────────────────────────────
+// Fallback: if synced doesn't fire within 3s, init anyway
+let _initialized = false;
+setTimeout(() => {
+  if (!_initialized) {
+    _initialized = true;
+    console.log('[BlockSuite] Synced timeout — init empty template');
+    initEmptyTemplate();
+  }
+}, 3000);
+
 window.addEventListener('message', async (event) => {
   const { type, payload } = event.data || {};
   
   if (type === 'LOAD_INITIAL_CONTENT') {
     try {
-      // Masukkan data JSON dari Appwrite ke dalam BlockSuite
       const snapshot = JSON.parse(payload.json);
       const job = new Job({ collection });
       
-      // Hapus dokumen kosong yang dibuat di awal agar tidak bentrok id-nya
       collection.removeDoc(DOC_ID);
-      
-      // Load dari JSON ke dokumen baru
       const loadedDoc = await job.snapshotToDoc(snapshot);
       
-      // Timpa editor dengan dokumen yang baru diload
-      editor.doc = loadedDoc;
+      mountEditor(loadedDoc as any);
+      window.parent.postMessage({ type: 'EDITOR_READY', payload: { docId: DOC_ID } }, '*');
+      _editor!.doc.spaceDoc.on('update', sendContentToParent);
       
     } catch (e) {
-      console.error('[BlockSuite] Gagal parse JSON cadangan dari Appwrite:', e);
+      console.error('[BlockSuite] Gagal parse JSON:', e);
+      initEmptyTemplate();
     }
-    // Lapor siap & mulai autosave
-    window.parent.postMessage({ type: 'EDITOR_READY', payload: { docId: DOC_ID } }, '*');
-    editor.doc.spaceDoc.on('update', sendContentToParent);
   } 
   else if (type === 'LOAD_EMPTY_TEMPLATE') {
-    // Template kosong sudah dibuat di doc.load, jadi tinggal lapor siap
-    window.parent.postMessage({ type: 'EDITOR_READY', payload: { docId: DOC_ID } }, '*');
-    doc.spaceDoc.on('update', sendContentToParent);
+    initEmptyTemplate();
   }
 });
+
+function initEmptyTemplate() {
+  if (_initialized) return;
+  _initialized = true;
+  doc.load(); // doc is already created at the top level
+  
+  const pageBlockId = doc.addBlock('affine:page', {});
+  doc.addBlock('affine:surface', {}, pageBlockId);
+  const noteId = doc.addBlock('affine:note', {}, pageBlockId);
+  doc.addBlock('affine:paragraph', {}, noteId);
+  
+  doc.resetHistory();
+  
+  mountEditor(doc);
+  window.parent.postMessage({ type: 'EDITOR_READY', payload: { docId: DOC_ID } }, '*');
+  doc.spaceDoc.on('update', sendContentToParent);
+}

@@ -1,17 +1,68 @@
-# Project Rules & Style Guide
+# Coding Conventions
 
-This document lists the rules for adding new code or files to ensure everything stays neat and organized.
+## File Naming
 
-## File Naming Rules
-* **Web Pages:** Always use lowercase (e.g., `page.tsx`, `layout.tsx`). If the folder has brackets like `[id]`, it means it changes dynamically (like a specific book's ID).
-* **Components (Building Blocks):** Always start with a capital letter (e.g., `BookCard.tsx`, `AdminTopbar.tsx`).
-* **Helper Files:** Always use lowercase with dashes if needed (e.g., `appwrite-rest.ts`).
+| Type | Convention | Example |
+|---|---|---|
+| Web Pages | lowercase `page.tsx`, `layout.tsx` | `page.tsx`, `layout.tsx` |
+| Dynamic Routes | brackets `[id]`, `[slug]` | `buku/[slug]/page.tsx` |
+| Components | PascalCase | `BookCard.tsx`, `ChapterManager.tsx` |
+| Helpers/Utils | lowercase, dash-separated | `appwrite-rest.ts`, `proxy.ts` |
+| Route Groups | parentheses `(public)` | `(public)/page.tsx` |
 
-## Coding Style
-* **Database Connections:** Only use the `appwrite-rest.ts` file to talk to the database. Never try to connect directly using other methods.
-* **Styling (Colors & Layout):** We use Tailwind CSS. This means styling is written directly inside the HTML using specific keywords (like `text-blue-500` or `flex`). Do not create separate `.css` files unless absolutely necessary.
-* **Simplicity:** Keep the code simple and readable. If a component becomes too long, split it into smaller, named components.
+## Styling
 
-## Adding Features
-* If adding a new page for visitors, put it inside `src/app/(public)/`.
-* If adding a new page for admins, put it inside `src/app/admin/`.
+- **Tailwind CSS only** — no separate `.css` files unless absolutely necessary.
+- Inline styles go directly in JSX (e.g., `className="flex gap-4"`).
+- Global styles: `src/app/globals.css`.
+
+## Database Access
+
+- **Always** use `src/lib/appwrite-rest.ts` — never the official `node-appwrite` or `appwrite` SDK.
+- Query format uses the `Q` helper (Appwrite 1.5.x JSON format):
+  ```ts
+  Q.eq('status', 'published')
+  Q.search('title', query)
+  ```
+- Never expose `APPWRITE_API_KEY` to the client. All DB operations go through Server Actions or API routes.
+
+## Where to Put Things
+
+| Feature | Location |
+|---|---|
+| Public page | `src/app/(public)/` |
+| Admin page | `src/app/admin/` |
+| Admin login | `src/app/login/page.tsx` (not inside admin folder) |
+| Server-side DB operation | `src/actions/` (Server Action) |
+| Auth proxy | `src/app/api/auth/` |
+| Shared UI component | `src/components/` |
+| Admin-only component | `src/components/admin/` |
+| Public-only component | `src/components/public/` |
+| Editor wrapper | `src/components/editor/` |
+
+## React Patterns
+
+- **Server Components** for data fetching (pages, `StatsPanel`, etc.).
+- **Client Components** (`"use client"`) only when needed: forms, interactivity, contexts.
+- Auth contexts are Client Components wrapping their respective layouts.
+- Never use `Models.Document` from Appwrite SDK — use `Record<string, unknown>` and cast to custom interfaces.
+
+## BlockSuite Rules
+
+- BlockSuite runs as a separate service. Never import BlockSuite code into Next.js.
+- Communication is strictly `window.postMessage`.
+- Editor is instantiated **inside** `mountEditor()` (not at module level).
+- `_connectedRan` flag on `this` (not closure) — required for prototype patch to work.
+- After changing prototype patches: `rm -rf blocksuite/node_modules/.vite blocksuite/.vite`.
+
+## Component Patterns
+
+- Extract types into `src/types/` for shared interfaces.
+- Keep components small and single-purpose. Split long components.
+- Use `String(value ?? '')` or `!!value` when casting `unknown` to `ReactNode`.
+
+## API Routes
+
+- Auth-related: `src/app/api/auth/` (admin) and `src/app/api/public-auth/` (readers).
+- Keep API routes thin — delegate to Server Actions where possible.
+- No SDK key exposure in client-side code.

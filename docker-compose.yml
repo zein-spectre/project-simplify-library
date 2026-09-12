@@ -9,7 +9,7 @@ services:
       - "2002:3000"
     environment:
       # BlockSuite Editor URL (menggunakan IP lokal CasaOS sesuai dengan port BlockSuite)
-      - NEXT_PUBLIC_BLOCKSUITE_URL=http://192.168.110.124:2003
+      - NEXT_PUBLIC_BLOCKSUITE_URL=http://localhost:2003
       
       # Appwrite Configuration (Ambil dari .env.local Anda)
       - NEXT_PUBLIC_APPWRITE_ENDPOINT=https://appwrite.geladisalam.my.id

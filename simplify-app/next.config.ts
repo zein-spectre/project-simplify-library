@@ -34,8 +34,8 @@ const nextConfig: NextConfig = {
               "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
               "img-src 'self' data: blob: https://appwrite.geladisalam.my.id",
               "connect-src 'self' https://appwrite.geladisalam.my.id wss://appwrite.geladisalam.my.id",
-              // Izinkan iframe blocksuite (dinamis dari environment variable)
-              `frame-src 'self' http://localhost:5173 http://localhost:5174 ${process.env.NEXT_PUBLIC_BLOCKSUITE_URL || ''}`,
+              // Izinkan iframe blocksuite (dinamis dari environment variable + hardcode port docker)
+              `frame-src 'self' http://localhost:5173 http://localhost:5174 http://localhost:2003 http://192.168.110.124:2003 ${process.env.NEXT_PUBLIC_BLOCKSUITE_URL || ''}`,
             ].join('; '),
           },
         ],
